@@ -14,7 +14,7 @@ hands = mp_hands.Hands(
     min_detection_confidence=0.5,
     min_tracking_confidence=0.5)
 
-
+#"실험 원본 영상(22.12.04) .mp4"
 cap = cv2.VideoCapture("실험 원본 영상(22.12.04) .mp4")
 
 w = round(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -22,7 +22,7 @@ h = round(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 
 fourcc = cv2.VideoWriter_fourcc(*'DIVX') # *'DIVX' == 'D','I','V','X'
-out = cv2.VideoWriter('실험 스케일 버전 1 (손 바운더리 박스 적용)(22.12.22).avi', fourcc, 30, (w*2, h))
+out = cv2.VideoWriter('실험 스케일 버전2 (라인 합 적용)(22.12.22).avi', fourcc, 30, (w*2, h))
 # out2 = cv2.VideoWriter('output_Logical_Sync_hand_scale(22.12.04).avi', fourcc, 30, (w, h))
 a = 0
 count = 1
@@ -63,53 +63,34 @@ while cap.isOpened():
             result= []
             dot = (int((Right_result[0][0]-Left_result[0][0])/2)+Left_result[0][0], h)
             cv2.circle(img2,dot,5,(0,0,0),-1,cv2.LINE_AA)
-            
-            Right_x = set() 
-            Right_y = set()
-          
+            sum_r = 0
             for i in range(len(Right_result)):
                 cv2.line(img2,dot,Right_result[i],(0,0,255))
                 cv2.line(img2,dot,Left_result[i],(255,0,0))    
                 res_r=math.sqrt((Right_result[i][0]-dot[0])**2+(Right_result[i][1]-dot[1])**2)
                 res_l=math.sqrt((Left_result[i][0]-dot[0])**2+(Left_result[i][1]-dot[1])**2)
-                
+                sum_r += (res_r+res_l) 
                 result.append(abs(res_r-res_l))
-                Right_x.add(Right_result[i][0]);Right_y.add(Right_result[i][1]);Right_x.add(Left_result[i][0]);Right_y.add(Left_result[i][1])
-            
-            x_Lenght = max(list(Right_x)) - min(list(Right_x))  
-            y_Lenght = max(list(Right_y)) - min(list(Right_y))  
-            
-            detectbox_x_lenght = x_Lenght 
-            detectbox_y_lenght = y_Lenght 
-            detectbox_size = detectbox_x_lenght * detectbox_y_lenght
-            
+                
+
             # 손 크기에 따른 역치 부여
-            scale = 1 - (detectbox_size /(w*h))
+            scale =  (sum_r/(w*h))
             scale = round(scale,4)
-            
             res_error_rate =sum(result)
             
             # sclae 적용
-            res_error_rate = (res_error_rate * scale) / 10
-            
-            if scale <= 0:
-                text = "hand is too close" 
-                cv2.putText(img2,text,(int(w/10)*1,int(h/10)*2),cv2.FONT_HERSHEY_SIMPLEX,0.8,(0,0,0),1,cv2.LINE_AA)
-                cv2.putText(img,text,(int(w/10)*1,int(h/10)*2),cv2.FONT_HERSHEY_SIMPLEX,0.8,(0,0,0),1,cv2.LINE_AA)
-                cv2.putText(img2,str(count),(int(w/10)*1,int(h/10)*1),cv2.FONT_HERSHEY_SIMPLEX,0.8,(0,0,0),1,cv2.LINE_AA)
-                cv2.putText(img,str(count),(int(w/10)*1,int(h/10)*1),cv2.FONT_HERSHEY_SIMPLEX,0.8,(0,0,0),1,cv2.LINE_AA)
-                count +=1
-            else:          
+            res_error_rate = (res_error_rate /sum_r)*100
+
             # # 동기화 정도.
-                res_syn_rate = 100 - res_error_rate
-                res_syn_rate = round(res_syn_rate,2)
-                text = "Synchronization: " + str(res_syn_rate) + "  error_rate :"+str(round(res_error_rate,2))
-                cv2.putText(img2,text,(int(w/10)*1,int(h/10)*2),cv2.FONT_HERSHEY_SIMPLEX,0.8,(0,0,0),1,cv2.LINE_AA)
-                cv2.putText(img,text,(int(w/10)*1,int(h/10)*2),cv2.FONT_HERSHEY_SIMPLEX,0.8,(0,0,0),1,cv2.LINE_AA)
-                cv2.putText(img2,str(count),(int(w/10)*1,int(h/10)*1),cv2.FONT_HERSHEY_SIMPLEX,0.8,(0,0,0),1,cv2.LINE_AA)
-                cv2.putText(img,str(count),(int(w/10)*1,int(h/10)*1),cv2.FONT_HERSHEY_SIMPLEX,0.8,(0,0,0),1,cv2.LINE_AA)
-                img3 = np.hstack([img,img2])
-                count +=1
+            res_syn_rate = 100 - res_error_rate
+            res_syn_rate = round(res_syn_rate,2)
+            text = "Synchronization: " + str(res_syn_rate) + "  error_rate :"+str(round(res_error_rate,2))
+            cv2.putText(img2,text,(int(w/10)*1,int(h/10)*2),cv2.FONT_HERSHEY_SIMPLEX,0.8,(0,0,0),1,cv2.LINE_AA)
+            cv2.putText(img,text,(int(w/10)*1,int(h/10)*2),cv2.FONT_HERSHEY_SIMPLEX,0.8,(0,0,0),1,cv2.LINE_AA)
+            cv2.putText(img2,str(count),(int(w/10)*1,int(h/10)*1),cv2.FONT_HERSHEY_SIMPLEX,0.8,(0,0,0),1,cv2.LINE_AA)
+            cv2.putText(img,str(count),(int(w/10)*1,int(h/10)*1),cv2.FONT_HERSHEY_SIMPLEX,0.8,(0,0,0),1,cv2.LINE_AA)
+            img3 = np.hstack([img,img2])
+            count +=1
         a=0
     cv2.imshow('Visible video', img3)
     # cv2.imshow("Logical video", img2)
